@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title></title>
+    <link>https://monaa.dev/</link>
+    <description>Recent content on </description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Sun, 05 Apr 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://monaa.dev/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Mocks Considered Harmful</title>
+      <link>https://monaa.dev/posts/mocks-considered-harmful/</link>
+      <pubDate>Sun, 05 Apr 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://monaa.dev/posts/mocks-considered-harmful/</guid>
+      <description>Even though Mocks, Spies, Fakes, and Stubs were part of our testing toolchain in the past, we should avoid using them in modern software development!</description>
+    </item>
+    
+    <item>
+      <title>Hello World</title>
+      <link>https://monaa.dev/posts/hello-world/</link>
+      <pubDate>Mon, 21 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://monaa.dev/posts/hello-world/</guid>
+      <description>The beginning is always today! As of today, I&amp;rsquo;m going to write my thoughts on geeky subjects here:
+fun main() { println(&amp;#34;Hello World :)&amp;#34;) } After all, it&amp;rsquo;s all about the beginnings:
+ The ending is nearer than you think, and it is already written. All that we have left to choose is the correct moment to begin
+ Let&amp;rsquo;s hope this is the right moment for me!</description>
+    </item>
+    
+    <item>
+      <title>About</title>
+      <link>https://monaa.dev/about/</link>
+      <pubDate>Mon, 21 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://monaa.dev/about/</guid>
+      <description>I&amp;rsquo;m a software engineer with a pssion to learn, to teach and to solve real world&amp;rsquo;s problems with products that delight and inspire. Over the years, I helped customers to build applications in various business sectors ranging from Open Banking APIs to Advertising Platforms.</description>
+    </item>
+    
+  </channel>
+</rss>

@@ -1,0 +1,189 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+    <channel>
+        <title>Posts on </title>
+        <link>https://monaa.dev/posts/</link>
+        <description>Recent content in Posts on </description>
+        <generator>Hugo -- gohugo.io</generator>
+        <lastBuildDate>Sun, 05 Apr 2020 00:00:00 +0000</lastBuildDate>
+        <atom:link href="https://monaa.dev/posts/index.xml" rel="self" type="application/rss+xml" />
+        
+        <item>
+            <title>Mocks Considered Harmful</title>
+            <link>https://monaa.dev/posts/mocks-considered-harmful/</link>
+            <pubDate>Sun, 05 Apr 2020 00:00:00 +0000</pubDate>
+            
+            <guid>https://monaa.dev/posts/mocks-considered-harmful/</guid>
+            <description>Even though Mocks, Spies, Fakes, and Stubs were part of our testing toolchain in the past, we should avoid using them in modern software development!</description>
+            <content type="html"><![CDATA[<p>Even though <em>Mocks</em>, <em>Spies</em>, <em>Fakes</em>, and <em>Stubs</em> were part of our testing toolchain in the past, we should avoid using them in modern software development.</p>
+<p>That may sound like a bold statement at first. However, I believe those ideas are backed by arguments that <strong>simply are not valid anymore</strong>.</p>
+<p>We might as well consider test doubles as our humble beginning to the testing world! But there are definitely better ways to do it these days.</p>
+<p><em>Let&rsquo;s see how we got here and explore new ways!</em></p>
+<h2 id="test-doublessupsup">Test Doubles<!-- raw HTML omitted -->*<!-- raw HTML omitted --></h2>
+<hr>
+<p>Gerard Meszaros, in his seminal work <em><a href="http://xunitpatterns.com/index.html">xUnit Test Patterns</a></em>, defined the <em>Test Double</em> concept as the following:</p>
+<blockquote>
+<p><em>Test doubles are <strong>test-specific equivalents</strong> for components that our subject under test depends on.</em></p>
+</blockquote>
+<p>Software components don&rsquo;t live in isolation. As a result of these component dependencies, it may be hard to test one specific component without touching the others. To be more specific, sometimes:</p>
+<ul>
+<li>We may not have access to other components in tests.</li>
+<li>We may not be able to control other components of what they accept or return.</li>
+<li>Other components may have unwanted side-effects.</li>
+<li>Those components may make our tests to run slower.</li>
+</ul>
+<p>Then he proposed a specific variation of test doubles to solve these issues or a subset of them. Let&rsquo;s get acquainted with those variations real quick.</p>
+<h3 id="stub">Stub</h3>
+<p><strong>Some components may provide some <em>indirect</em> inputs to our subject under test (SUT)</strong>. To control those components and what they might return, we can use <em>Stubs</em>:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-kotlin" data-lang="kotlin"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">UserService</span>(<span style="color:#66d9ef">private</span> userRepository: UserRepository) {
+    
+    <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">register</span>(u: User) {
+        <span style="color:#66d9ef">val</span> exists = userRepository.exists(u) <span style="color:#75715e">// indirect input for SUT
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (exists) <span style="color:#66d9ef">throw</span> UserAlreadyExistsException()
+
+        <span style="color:#75715e">// go ahead and register the user
+</span><span style="color:#75715e"></span>    }
+}
+</code></pre></div><p>To stub out the <code>UserRepository</code> here, we can do something like:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-kotlin" data-lang="kotlin"><span style="color:#a6e22e">@Test</span>
+<span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">`Register should throw an exception when the user already exists`</span>() {
+    <span style="color:#66d9ef">val</span> u = <span style="color:#75715e">// some user
+</span><span style="color:#75715e"></span>    stub {
+        on { userRepository.exists(u) } doReturn <span style="color:#66d9ef">true</span>
+    }
+
+    <span style="color:#75715e">// go examine and assert
+</span><span style="color:#75715e"></span>}
+</code></pre></div><p>Here we simply control what the <code>userRepository</code> returns to the SUT.</p>
+<h3 id="mockspy">Mock/Spy</h3>
+<p>Mocks and Spies are just like Stubs with recording capabilities. Most mocking frameworks, however, consider these three concepts almost identical.</p>
+<p>We can simply record what has been passed to the mocks/spies and verify them later on:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-kotlin" data-lang="kotlin"><span style="color:#a6e22e">@Test</span>
+<span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">`Register should throw an exception when the user already exists`</span>() {
+    <span style="color:#66d9ef">val</span> passedUser = argumentCaptor&lt;User&gt;()
+    stub {
+        on { userRepository.exists(passedUser.capture()) } doReturn <span style="color:#66d9ef">true</span>
+    }
+
+    <span style="color:#66d9ef">val</span> u = <span style="color:#75715e">// actual user
+</span><span style="color:#75715e"></span>    userService.register(u)
+
+    <span style="color:#75715e">// verifying that u has been passed to the repository
+</span><span style="color:#75715e"></span>    assertThat(passedUser.firstValue).isEqualTo(u)
+}
+</code></pre></div><p>Sometimes with spies, there is a real object and we just spying or stubbing specific methods of it. On the other hand, when using mocks, we usually mock the whole thing out!</p>
+<h3 id="fake">Fake</h3>
+<p>In the dark days, spinning up Oracle, Postgres, RabbitMQ, etc. instances in test environments was quite a hassle. In addition to this complexity, using <em>actual</em> instances of those <em>infrastructures</em> was incurring a significant overhead. <strong>Hence the innovative concept of Slow Tests!</strong></p>
+<p>Then we turned our attention towards <em>Fakes</em>. Fakes are usually providing the <em>same interface</em> as the actual components but with a more <em>lighter-weight implementation</em>. For instance, instead of using Postgres in our test environments, we used to run our tests using the likes of H2, HSQLDB, etc.</p>
+<p><em>This way, we managed to go through those dark days as our tests were running fast!</em></p>
+<h3 id="the-test-pyramid">The Test Pyramid</h3>
+<p>Mike Cohn, in yet another seminal work <em><a href="https://www.amazon.com/Succeeding-Agile-Software-Development-Using/dp/0321579364">Succeeding with Agile</a></em>, coined the term <em>Test Pyramid</em>:
+
+    <figure class="left" >
+        <img src="/images/pyramid.png"   />
+
+        
+            <figcaption class="center" >Figure 1: Test Pyramid</figcaption>
+        
+    </figure>
+
+
+Basically, the test pyramid is a visual depiction of different layers of testing with two fundamental properties:</p>
+<ul>
+<li>There are more tests as we approach unit tests.</li>
+<li>The bottom layer tests are faster.</li>
+</ul>
+<p>This layered approach promotes the idea of <em>having tests in different levels of granularity</em>, which is a good thing. Also, it seems that we should have more fine-grained, i.e. unit, tests compared to those coarse-grained ones.</p>
+<h2 id="embracing-integration-tests">Embracing Integration Tests</h2>
+<hr>
+<p>After a quick overview of a few ideas in the software testing literature, let&rsquo;s measure them with today&rsquo;s standards. It seems there are two fundamental motivations for using mocks and test doubles in general:</p>
+<ul>
+<li>Faster execution time.</li>
+<li>Better support for isolation and consequently, unit tests.</li>
+</ul>
+<p>Nowadays, even our smartphones are capable of running some heavy stuff like Postgres! So, <strong>the faster execution time is not a good excuse to mock everything out!</strong></p>
+<p>Additionally, software components are mostly collaborating with each other to do something meaningful. Therefore, better support for isolated tests doesn&rsquo;t seem to be a good reason either.</p>
+<p>Don&rsquo;t get the wrong idea here. Unit tests are sitting at a great level of granularity when we&rsquo;re going to test some algorithm or data structure or whatever that has a <em>meaningful identity in isolation</em>.</p>
+<p>However, it&rsquo;s not a good idea to write unit tests for controllers, database interactions or anything else that does not play well with this level of granularity.</p>
+<p><em>The key takeaway here is writing <a href="https://kentcdodds.com/blog/write-tests">mostly integration tests</a></em>. Instead of thinking out of the box, <em>think upside down</em> this time around regarding the test pyramid!</p>
+<h2 id="tools-of-the-trade">Tools of the Trade</h2>
+<hr>
+<p>As light-weight containers gained more popularity and ubiquity in recent years, the landscape of testing with real components improved dramatically.</p>
+<h3 id="modern-cicd-environments">Modern CI/CD Environments</h3>
+<p>These days, most modern CI/CD environments run their stages in container-based runners. So they naturally support the idea of running other containers to facilitate integration tests:</p>
+<ul>
+<li>Gitlab has a concept called <em>services</em> which provides a way to link another container with the container running the current job. The most common use-case for this is to run some infrastructural components for the sake of testing, e.g. <a href="https://docs.gitlab.com/ee/ci/services/mysql.html">MySQL</a>.</li>
+<li>CircleCI also supports the idea of <a href="https://circleci.com/docs/2.0/circleci-images/#service-images">service images</a>.</li>
+<li>Similarly, TravisCI provides a way to define these <a href="https://docs.travis-ci.com/user/database-setup/">servcies</a>.</li>
+</ul>
+<p>The bottom line is, if you&rsquo;re using any modern CI/CD environment, chances are that you can run a few extra docker containers for your tests.</p>
+<h3 id="test-containers">Test Containers</h3>
+<p>If we choose to rely on what our CI/CD of the choice offers, we are limited to run at least some of our integration tests <em>only during CI/CD stages</em>. Still better than mocking, but there are some rooms for improvements.</p>
+<p>One such improvement is to use <em><a href="https://www.testcontainers.org">Test Containers</a></em>. <strong>Using testcontainers, we can spin up a container before running tests and tearing it down afterward</strong>. For example, it&rsquo;s possible to write a simple fixture setup to spin a MySQL instance:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-kotlin" data-lang="kotlin"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">MySqlExtension</span> : BeforeAllCallback, AfterAllCallback {
+ 
+    <span style="color:#66d9ef">lateinit</span> <span style="color:#66d9ef">var</span> container: MySQLContainer&lt;*&gt;
+ 
+    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">beforeAll</span>(context: ExtensionContext?) {
+        container = MySQLContainer&lt;Nothing&gt;(<span style="color:#e6db74">&#34;mysql:8&#34;</span>)
+        container.start()
+    }
+ 
+    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">afterAll</span>(context: ExtensionContext?) {
+        container.stop()
+    }
+}
+</code></pre></div><p>Then in our tests we can actually hit a real database and avoid mocking:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-kotlin" data-lang="kotlin"><span style="color:#a6e22e">@ExtendWith</span>(MySqlExtension<span style="color:#f92672">::</span><span style="color:#66d9ef">class</span>)
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">UserServiceIntegrationTest</span> {
+
+    <span style="color:#75715e">// omitted
+</span><span style="color:#75715e"></span>
+    <span style="color:#a6e22e">@Test</span>
+    <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">`Register should throw an exception when the user already exists`</span>() {
+        <span style="color:#66d9ef">val</span> u = <span style="color:#75715e">// some user
+</span><span style="color:#75715e"></span>        userRepository.save(u) <span style="color:#75715e">// making it to already exist, no mocking!
+</span><span style="color:#75715e"></span>
+        <span style="color:#75715e">// go examine and assert
+</span><span style="color:#75715e"></span>    }
+}
+</code></pre></div><p><strong>The good news is there are test containers ports for <a href="https://github.com/testcontainers/testcontainers-go">Golang</a>, <a href="https://github.com/testcontainers/testcontainers-rs">Rust</a>, <a href="https://github.com/testcontainers/testcontainers-python">Python</a>, <a href="https://github.com/testcontainers/testcontainers-node">NodeJS</a>, etc. so we can take advantage of this idea in different platforms.</strong></p>
+<h3 id="external-apis">External APIs</h3>
+<p>Calling external APIs, either local Microservices or other providers, is <em>inevitable</em> these days. There are some tools to facilitate wrting tests for these types of services, too. For example, <a href="http://wiremock.org/docs/">WireMock</a> can be used to write more robust HTTP oriented tests.</p>
+<p>Moreover, there are tools for writing tests based on the <em>Consumer Driven Contract</em> idea such as <a href="https://docs.pact.io">Pact</a>:</p>
+<blockquote>
+<p>Contract testing is a technique for testing an integration point by checking each application in isolation to ensure the messages it sends or receives conform to a shared understanding that is documented in a &ldquo;contract&rdquo;.</p>
+</blockquote>
+<h2 id="conclusion">Conclusion</h2>
+<hr>
+<p>In this article we tried to convice you that <em>we can do much better than mocks!</em>. A few years ago, <em>DHH</em> talked about the same topic in <a href="https://dhh.dk/2014/test-induced-design-damage.html">Test-induced design damage</a>, which is highly recommended.</p>
+<p>We discourage the use of any form of test doubles these days. However, we&rsquo;re not questioning the mentioned works in the article, specifically <em>xUnit Test Patterns</em> which is a masterpiece.</p>
+<h4 id="footnotes"><em>footnotes</em></h4>
+<p><!-- raw HTML omitted -->*<!-- raw HTML omitted --> <em>Gerard Meszaros about the origins of test double: When the producers of a movie want to film something that is potentially risky or dangerous for the leading actor to carry out, they hire a &ldquo;stunt double&rdquo; to take the place of the actor in the scene. The stunt double is a highly trained individual who is capable of meeting the specific requirements of the scene. The stunt double may not be able to act, but he or she knows how to fall from great heights, crash a car, or do whatever the scene calls for. How closely the stunt double needs to resemble the actor depends on the nature of the scene. Usually, things can be arranged such that someone who vaguely resembles the actor in stature can take the actor&rsquo;s place.</em></p>
+]]></content>
+        </item>
+        
+        <item>
+            <title>Hello World</title>
+            <link>https://monaa.dev/posts/hello-world/</link>
+            <pubDate>Mon, 21 Oct 2019 00:00:00 +0000</pubDate>
+            
+            <guid>https://monaa.dev/posts/hello-world/</guid>
+            <description>The beginning is always today! As of today, I&amp;rsquo;m going to write my thoughts on geeky subjects here:
+fun main() { println(&amp;#34;Hello World :)&amp;#34;) } After all, it&amp;rsquo;s all about the beginnings:
+ The ending is nearer than you think, and it is already written. All that we have left to choose is the correct moment to begin
+ Let&amp;rsquo;s hope this is the right moment for me!</description>
+            <content type="html"><![CDATA[<h2 id="the-beginning-is-always-today">The beginning is always today!</h2>
+<p>As of today, I&rsquo;m going to write my thoughts on geeky subjects here:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-kotlin" data-lang="kotlin"><span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">main</span>() {
+    println(<span style="color:#e6db74">&#34;Hello World :)&#34;</span>)
+}
+</code></pre></div><p>After all, it&rsquo;s all about the beginnings:</p>
+<blockquote>
+<p><em>The ending is nearer than you think, and it is already written. All that we have left to choose is the correct moment to begin</em></p>
+</blockquote>
+<p>Let&rsquo;s hope this is the right moment for me!</p>
+]]></content>
+        </item>
+        
+    </channel>
+</rss>
